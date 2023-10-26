@@ -41,7 +41,7 @@ def forward_propagate(network, row):
     return inputs
 
 # Neuron function activation
-class MyEnum(Enum):
+class neuronActivationFunctions(Enum):
     def linear(x, p=1):
         return p*x
     
@@ -86,3 +86,39 @@ class neuron:
         net = self.net(inputs)
         return self.activationFunction(net, self.activationFunctionAngularFactor)
  
+class artifialNetwork:
+
+    inputLayerNeurons = []
+    hiddenLayerNeurons = []
+    outputLayerNeurons = []
+
+    # Ariticial neural network constructor. To create this ANN we have some possibilitys
+    # that are defined by the parameters.
+    # numberOfInputNeurons: is the amount of inputs of the ANN.
+    # hiddenNeurons: 
+    #   - in first case this parameter can be just a integer that indicates how many neurons
+    #     will exist in the hidden layer.
+    #   - in second case this can be a dictionary with all custom settings to hidden layer, E.g:
+    #       {
+    #           "weights" = [[w11, w22, ..., w1N],  <- each line represents a unique neuron an it's weights.
+    #                        [w21, w22, ..., w2N],
+    #                          .     .         .
+    #                          .     .         .
+    #                          .     .         .
+    #                        [wM1, wM2, ..., wMN]],
+    #
+    #           "activationFunctions" = [activationFunction1, ...,activationFunctionM], <- each column can be intepreted as 
+    #                                                                                      a activation function that will be
+    #                                                                                      insert in hidden layer neurons. If,
+    #                                                                                      just a UNIQUE function is defined, all
+    #                                                                                      neurons will have the same activation Function.
+    #
+    #           "activationFunctionAngularFactor" = [p1, ..., pM], <- each column can be intepreted as 
+    #                                                                 a activation function angular factor that will be
+    #                                                                 insert in hidden layer neurons. If,
+    #                                                                 just a UNIQUE angular factor is defined, all
+    #                                                                 functions will have the same angular factor.
+    #           "bias" 
+    #       }
+    def __init__(numberOfInputNeurons, hiddenNeurons, outputNeurons):
+        pass
