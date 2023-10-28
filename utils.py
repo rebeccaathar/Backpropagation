@@ -62,7 +62,7 @@ class neuron:
     def activationFunction(): pass
     
     # Neuron contructor, it receives, 4 arguments, thus, they are described below.
-    # weights: indicates the neuron link weights
+    # weights: indicates the neuron link weights. E.g: [w1, w2, w3, ..., wN]
     # bias: bias of the neuron
     # activationFunction: define the activation function of the neuron
     # activationFunctionAngularFactor: it is the angular factor of the neuron
@@ -98,9 +98,12 @@ class artifialNetwork:
     # hiddenNeurons: 
     #   - in first case this parameter can be just a integer that indicates how many neurons
     #     will exist in the hidden layer.
-    #   - in second case this can be a dictionary with all custom settings to hidden layer, E.g:
+    #   - in second case this can be a dictionary with custom settings to hidden layer, E.g:
     #       {
-    #           "weights" = [[w11, w22, ..., w1N],  <- each line represents a unique neuron an it's weights.
+    #           "numberOfHiddenNeurons" = x, <- just a integer that indicates how many neurons
+    #                                          will exist in the hidden layer (REQUIRED)
+    #
+    #           "weights" = [[w11, w22, ..., w1N],  <- each line represents a unique neuron and it's weights. (OPTIONAL)
     #                        [w21, w22, ..., w2N],
     #                          .     .         .
     #                          .     .         .
@@ -111,14 +114,193 @@ class artifialNetwork:
     #                                                                                      a activation function that will be
     #                                                                                      insert in hidden layer neurons. If,
     #                                                                                      just a UNIQUE function is defined, all
-    #                                                                                      neurons will have the same activation Function.
+    #                                                                                      neurons will have the same activation Function. (OPTIONAL)
     #
     #           "activationFunctionAngularFactor" = [p1, ..., pM], <- each column can be intepreted as 
     #                                                                 a activation function angular factor that will be
     #                                                                 insert in hidden layer neurons. If,
     #                                                                 just a UNIQUE angular factor is defined, all
-    #                                                                 functions will have the same angular factor.
-    #           "bias" 
+    #                                                                 functions will have the same angular factor. (OPTIONAL)
+    #
+    #           "bias" = b <- this is the common bias for all hidden layers neurons (OPTIONAL)
     #       }
-    def __init__(numberOfInputNeurons, hiddenNeurons, outputNeurons):
-        pass
+    # outputNeurons:
+    #   - in first case this parameter can be just a integer that indicates how many neurons
+    #     will exist in the output layer.
+    #   - in second case this can be a dictionary with all custom settings to output layer, E.g:
+    #       {
+    #           "numberOfOutputNeurons" = x, <- just a integer that indicates how many neurons
+    #                                          will exist in the output layer (REQUIRED)
+    #
+    #           "weights" = [[w11, w22, ..., w1N],  <- each line represents a unique neuron an it's weights. (OPTIONAL)
+    #                        [w21, w22, ..., w2N],
+    #                          .     .         .
+    #                          .     .         .
+    #                          .     .         .
+    #                        [wM1, wM2, ..., wMN]],
+    #
+    #           "activationFunctionAngularFactor" = [p1, ..., pM], <- each column can be intepreted as 
+    #                                                                 a activation function angular factor that will be
+    #                                                                 insert in output layer neurons. If,
+    #                                                                 just a UNIQUE angular factor is defined, all
+    #                                                                 functions will have the same angular factor. (OPTIONAL)
+    #
+    #           "bias" = b <- this is the common bias for all output layer neurons (OPTIONAL)
+    #       }
+    def __init__(self, numberOfInputNeurons, hiddenNeurons, outputNeurons):
+        # Input layer config
+        if(numberOfInputNeurons <= 0 or type(numberOfInputNeurons) is not int): raise ValueError('Number of inputs neurons invalid. Parameter must be an integer greater or equals 0')
+        for i in range(numberOfInputNeurons):
+            self.inputLayerNeurons.append(neuron([1], 0, neuronActivationFunctions.linear, 1))
+        
+        # Hidden layer config
+        if((type(hiddenNeurons) is not int) and (type(hiddenNeurons) is not dict)):
+            raise ValueError('Hidden neurons Parameter must be an integer or dictionary')
+        if (type(hiddenNeurons) is int):
+            if(hiddenNeurons <= 0): raise ValueError('Number of hidden neurons invalid. Parameter must be greater or equals 0')
+            hiddenNeurons = {"numberOfHiddenNeurons":hiddenNeurons}
+        hiddenNeuronsCompleteSettings = self.__completeHiddenNeuronsSettings__(hiddenNeurons)
+        self.__createHiddenLayerFromSetings__(hiddenNeuronsCompleteSettings)
+
+        #output layer config
+        if((type(outputNeurons) is not int) and (type(outputNeurons) is not dict)):
+            raise ValueError('Output neurons Parameter must be an integer or dictionary')
+        if (type(outputNeurons) is int):
+            if(outputNeurons <= 0): raise ValueError('Number of output neurons invalid. Parameter must be greater or equals 0')
+            outputNeurons = {"numberOfOutputNeurons":outputNeurons}
+        outputNeuronsCompleteSettings = self.__completeOutputNeuronsSettings__(outputNeurons)
+        self.__createOutputLayerFromSetings__(outputNeuronsCompleteSettings)
+
+    # This method receive an incomplete dictionary with custom hidden layer settings
+    # and complete it with default values for optionals not provided.
+    def __completeHiddenNeuronsSettings__(self, incompleteDictSettings):
+        defaultSettings = {
+            "numberOfHiddenNeurons": 0,
+            "weights": [],
+            "activationFunctions": [],
+            "activationFunctionAngularFactor": [], 
+            "bias": 0
+        }
+
+        # Overwrite default number of hidden neurouns
+        if ('numberOfHiddenNeurons' not in incompleteDictSettings):
+            raise ValueError('Missing required option numberOfHiddenNeurons')
+        else:
+            if(incompleteDictSettings['numberOfHiddenNeurons'] <= 0): raise ValueError('Number of hidden neurons invalid. Parameter must be greater or equals 0')
+            defaultSettings['numberOfHiddenNeurons'] = incompleteDictSettings['numberOfHiddenNeurons']
+
+        # Overwrite default weights
+        if ('weights' not in incompleteDictSettings):
+            for i in range(defaultSettings['numberOfHiddenNeurons']):
+                defaultSettings['weights'].append(np.ones(len(self.inputLayerNeurons)))
+        else:
+            if(len(incompleteDictSettings['weights'][0]) is not len(self.inputLayerNeurons)): 
+                raise ValueError('hidden layer weights column dimension does not match input layer')
+            if(len(incompleteDictSettings['weights']) is not defaultSettings['numberOfHiddenNeurons']): 
+                raise ValueError('hidden layer weights rows dimension does not match provisioned numberOfHiddenNeurons')
+            defaultSettings['weights'] = incompleteDictSettings['weights']
+        
+        # Overwrite default activation functions
+        if ('activationFunctions' not in incompleteDictSettings):
+            for i in range(defaultSettings['numberOfHiddenNeurons']):
+                defaultSettings['activationFunctions'].append(neuronActivationFunctions.sigmoide)
+        else:
+            if (type(incompleteDictSettings['activationFunctions']) is not list):
+                for i in range(defaultSettings['numberOfHiddenNeurons']):
+                    defaultSettings['activationFunctions'].append(incompleteDictSettings['activationFunctions'])
+            else:
+                if(len(incompleteDictSettings['activationFunctions']) is not defaultSettings['numberOfHiddenNeurons']): 
+                    raise ValueError('activationFunctions dimension does not match provisioned numberOfHiddenNeurons')
+                defaultSettings['activationFunctions'] = incompleteDictSettings['activationFunctions']
+
+        # Overwrite default activation functions angular factor
+        if ('activationFunctionAngularFactor' not in incompleteDictSettings):
+            for i in range(defaultSettings['numberOfHiddenNeurons']):
+                defaultSettings['activationFunctionAngularFactor'].append(1)
+        else:
+            if (type(incompleteDictSettings['activationFunctionAngularFactor']) is not list):
+                for i in range(defaultSettings['numberOfHiddenNeurons']):
+                    defaultSettings['activationFunctionAngularFactor'].append(incompleteDictSettings['activationFunctionAngularFactor'])
+            else:
+                if(len(incompleteDictSettings['activationFunctionAngularFactor']) is not len(defaultSettings['activationFunctions'])): 
+                    raise ValueError('activationFunctionAngularFactor dimension does not match provisioned activationFunctions')
+                defaultSettings['activationFunctionAngularFactor'] = incompleteDictSettings['activationFunctionAngularFactor']
+
+        # Overwrite default bias
+        if ('bias' in incompleteDictSettings):
+            defaultSettings['bias'] = incompleteDictSettings['bias']
+        
+        return defaultSettings
+
+    # This method create the hidden layer from custom settings provided
+    def __createHiddenLayerFromSetings__(self, hiddenNeuronsSettings):
+        for i in range(hiddenNeuronsSettings['numberOfHiddenNeurons']):
+            self.hiddenLayerNeurons.append(neuron(
+                hiddenNeuronsSettings['weights'][i],
+                hiddenNeuronsSettings['bias'],
+                hiddenNeuronsSettings['activationFunctions'][i],
+                hiddenNeuronsSettings['activationFunctionAngularFactor'][i]
+            ))
+    
+    # This method receive an incomplete dictionary with custom output layer settings
+    # and complete it with default values for optionals not provided.
+    def __completeOutputNeuronsSettings__(self, incompleteDictSettings):
+        defaultSettings = {
+            "numberOfOutputNeurons": 0,
+            "weights": [],
+            "activationFunctions": [],
+            "activationFunctionAngularFactor": [], 
+            "bias": 0
+        }
+
+        # Overwrite default number of output neurouns
+        if ('numberOfOutputNeurons' not in incompleteDictSettings):
+            raise ValueError('Missing required option numberOfOutputNeurons')
+        else:
+            if(incompleteDictSettings['numberOfOutputNeurons'] <= 0): raise ValueError('Number of output neurons invalid. Parameter must be greater or equals 0')
+            defaultSettings['numberOfOutputNeurons'] = incompleteDictSettings['numberOfOutputNeurons']
+
+        # Overwrite default weights
+        if ('weights' not in incompleteDictSettings):
+            for i in range(defaultSettings['numberOfOutputNeurons']):
+                defaultSettings['weights'].append(np.ones(len(self.hiddenLayerNeurons)))
+        else:
+            if(len(incompleteDictSettings['weights'][0]) is not len(self.hiddenLayerNeurons)): 
+                raise ValueError('output layer weights column dimension does not match hidden layer')
+            if(len(incompleteDictSettings['weights']) is not defaultSettings['numberOfOutputNeurons']): 
+                raise ValueError('output layer weights rows dimension does not match provisioned numberOfOutputNeurons')
+            defaultSettings['weights'] = incompleteDictSettings['weights']
+        
+        # Overwrite default activation functions
+        if ('activationFunctions' not in incompleteDictSettings):
+            for i in range(defaultSettings['numberOfOutputNeurons']):
+                defaultSettings['activationFunctions'].append(neuronActivationFunctions.linear)
+
+        # Overwrite default activation functions angular factor
+        if ('activationFunctionAngularFactor' not in incompleteDictSettings):
+            for i in range(defaultSettings['numberOfOutputNeurons']):
+                defaultSettings['activationFunctionAngularFactor'].append(1)
+        else:
+            if (type(incompleteDictSettings['activationFunctionAngularFactor']) is not list):
+                for i in range(defaultSettings['numberOfOutputNeurons']):
+                    defaultSettings['activationFunctionAngularFactor'].append(incompleteDictSettings['activationFunctionAngularFactor'])
+            else:
+                if(len(incompleteDictSettings['activationFunctionAngularFactor']) is not len(defaultSettings['activationFunctions'])): 
+                    raise ValueError('activationFunctionAngularFactor dimension does not match provisioned activationFunctions')
+                defaultSettings['activationFunctionAngularFactor'] = incompleteDictSettings['activationFunctionAngularFactor']
+
+        # Overwrite default bias
+        if ('bias' in incompleteDictSettings):
+            defaultSettings['bias'] = incompleteDictSettings['bias']
+        
+        return defaultSettings
+
+    # This method create the output layer from custom settings provided
+    def __createOutputLayerFromSetings__(self, outputNeuronsSettings):
+        for i in range(outputNeuronsSettings['numberOfOutputNeurons']):
+            self.outputLayerNeurons.append(neuron(
+                outputNeuronsSettings['weights'][i],
+                outputNeuronsSettings['bias'],
+                outputNeuronsSettings['activationFunctions'][i],
+                outputNeuronsSettings['activationFunctionAngularFactor'][i]
+            ))
