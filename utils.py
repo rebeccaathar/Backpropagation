@@ -75,10 +75,10 @@ class neuron:
     # net is a function that calculates the output of the node 
     # based on its inputs and the weights on individual inputs. 
     def net(self, inputs):
-        activation = self.bias #bias 
+        net = self.bias #bias 
         for i in range(len(self.weights)):
-            activation += self.weights[i] * inputs[i]
-        return activation
+            net += self.weights[i] * inputs[i]
+        return net
     
     # Activation is a function that calculates the output of the neuron 
     # based on its net and activation function.
