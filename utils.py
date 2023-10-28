@@ -298,13 +298,11 @@ class artifialNetwork:
         inputs = []
         for i in range(len(self.inputLayerNeurons)):
             inputs.append(self.inputLayerNeurons[i].activation([data[i]]))
-        print(inputs)
         # other layers propagation
         layers = [self.hiddenLayerNeurons, self.outputLayerNeurons]
         for layer in layers:
             new_inputs = []
             for neuron in layer:
                 new_inputs.append(neuron.activation(inputs))
-                print(new_inputs)
             inputs = new_inputs
         return inputs
