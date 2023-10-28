@@ -23,22 +23,6 @@ def accuracy_metric(actual, predicted):
     if actual[i] == predicted[i]:
         correct += 1
  return correct / float(len(actual)) 
- 
-# Linear neuron activation
-def linear(x):
-    return x
-
-# Forward propagate information from input to a network output.
-def forward_propagate(network, row):
-    inputs = row
-    for layer in network:
-        new_inputs = []
-    for neuron in layer:
-        activation = activate(neuron['weights'], inputs)
-        neuron['output'] = linear(activation)
-        new_inputs.append(neuron['output'])
-        inputs = new_inputs
-    return inputs
 
 # Neuron function activation
 class neuronActivationFunctions(Enum):
@@ -304,3 +288,23 @@ class artifialNetwork:
                 outputNeuronsSettings['activationFunctions'][i],
                 outputNeuronsSettings['activationFunctionAngularFactor'][i]
             ))
+
+    # Forward propagate information from input to a network output.
+    def forward_propagate(self, data):
+        if(len(data) is not len(self.inputLayerNeurons)):
+            raise ValueError('provisioned data must have the same dimension from ANN inputs')
+        
+        # input layer initial propagation
+        inputs = []
+        for i in range(len(self.inputLayerNeurons)):
+            inputs.append(self.inputLayerNeurons[i].activation([data[i]]))
+        print(inputs)
+        # other layers propagation
+        layers = [self.hiddenLayerNeurons, self.outputLayerNeurons]
+        for layer in layers:
+            new_inputs = []
+            for neuron in layer:
+                new_inputs.append(neuron.activation(inputs))
+                print(new_inputs)
+            inputs = new_inputs
+        return inputs
