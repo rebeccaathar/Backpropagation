@@ -365,5 +365,24 @@ class artifialNetwork:
             print('--------')
 
 # The train method
-def trainAnnBackpropagate(ann, data):
-    pass
+def trainAnnBackpropagate(artifialNetwork, annDataset, learningFactor, numberOfOutputs=1):
+    for uniqueData in annDataset.testDataset:
+        uniqueDataOutputs = uniqueData[-1 * numberOfOutputs]
+        uniqueDataInputs = uniqueData[: -1 * numberOfOutputs]
+
+        # Output Layer weights train
+        outputIndex = 0
+        for outputNeuron in artifialNetwork.outputLayerNeurons:
+            error = uniqueDataOutputs[outputIndex] - artifialNetwork.forwardPropagate(uniqueDataInputs)[outputIndex]
+            backLayerOutput = 0
+            for weight in outputNeuron.weights:
+                weightIncrement =   learningFactor * \
+                                    error * \
+                                    outputNeuron.getNeuronActivationFunctionsDerived(outputNeuron.lastNetMeasured) * \
+                                    artifialNetwork.hiddenLayerNeurons[backLayerOutput].lastOutputMeasured
+                weight += weightIncrement
+                outputNeuron.weights[backLayerOutput] = weight
+                backLayerOutput += 1
+            outputIndex += 1
+        
+        # Hidden layer weights train
