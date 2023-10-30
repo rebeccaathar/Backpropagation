@@ -59,7 +59,7 @@ class neuronActivationFunctions(Enum):
         return ((1-np.exp(-1*x*p))/(1+np.exp(-1*x*p)))
 
     def arctan(x, p=1):
-        return (p*(1/(1+x^2)))
+        return np.arctan(p*x)
 
 # The neuron class
 class neuron:
@@ -92,6 +92,19 @@ class neuron:
     def activation(self, inputs):
         net = self.net(inputs)
         return self.activationFunction(net, self.activationFunctionAngularFactor)
+
+    # Get neuron function activation derived
+    def getNeuronActivationFunctionsDerived(self, x):
+        p = self.activationFunctionAngularFactor
+        match self.activationfunction:
+            case neuronActivationFunctions.linear:
+                return p
+            case neuronActivationFunctions.sigmoide:
+                return p*neuronActivationFunctions.sigmoide(x)*(1-neuronActivationFunctions.sigmoide(x))
+            case neuronActivationFunctions.hiperbolica:
+                return p*(1-(neuronActivationFunctions.hiperbolica(x)^2))
+            case neuronActivationFunctions.arctan:
+                return (p*(1/(1+x^2)))
 
 # The ANN class 
 class artifialNetwork:
