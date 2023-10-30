@@ -2,19 +2,7 @@
 import numpy as np
 import pandas as pd
 from enum import Enum
-
-# Load dataset file
-def load_csv(filename):
-    data = pd.read_csv(filename, sep=';')
-    return data
-
-# Min-Max Normalization
-def min_max_normalize(data):
-    features = data.iloc[:, :-1]
-    min_val = np.min(features, axis=0)
-    max_val = np.max(features, axis=0)
-    normalized_features = (features - min_val) / (max_val - min_val)
-    return normalized_features
+import random
 
 # Calculate the accuracy of our model
 def accuracy_metric(actual, predicted):
@@ -23,6 +11,41 @@ def accuracy_metric(actual, predicted):
     if actual[i] == predicted[i]:
         correct += 1
  return correct / float(len(actual)) 
+
+# ANN Dataset class
+class annDataset():
+    testDataset = pd.DataFrame()
+    validationdataset = pd.DataFrame()
+
+    def __init__(self, pathToDataset, testSplitFraction=0.8, ValidationSplitfraction=0.2):
+        datasetNotNormalized = self.__loadCsv__(pathToDataset)
+        NormalizedDataset = self.__minMaxNormalize__(datasetNotNormalized)
+        self.testDataset, self.validationdataset = self.__splitDataframeRandomly__(NormalizedDataset, testSplitFraction, ValidationSplitfraction)
+
+    # Load dataset file
+    def __loadCsv__(self, pathToDataset):
+        data = pd.read_csv(pathToDataset, sep=';')
+        return data
+
+    # Min-Max Normalization
+    def __minMaxNormalize__(self, data):
+        features = data.iloc[:, :-1]
+        min_val = np.min(features, axis=0)
+        max_val = np.max(features, axis=0)
+        normalized_features = (features - min_val) / (max_val - min_val)
+        return normalized_features
+
+    # Split dataset in test and validation and use randon sort to change test and validation detaset every time is called
+    def __splitDataframeRandomly__(self, dataframe, proportionTest, proportionValidation):
+        if (proportionValidation + proportionTest > 1.0): raise ValueError('Test Proportion and Validation proportion must be less or equal 1')
+        num_rows = len(dataframe)
+        testRows = int(proportionTest * num_rows)
+        ValidationRows = int(proportionValidation * num_rows)
+        indices = list(dataframe.index)
+        random.shuffle(indices)
+        testDataset = dataframe.iloc[indices[:testRows], :]
+        validationDataset = dataframe.iloc[indices[testRows:ValidationRows+testRows], :]
+        return testDataset, validationDataset
 
 # Neuron function activation
 class neuronActivationFunctions(Enum):
@@ -69,7 +92,8 @@ class neuron:
     def activation(self, inputs):
         net = self.net(inputs)
         return self.activationFunction(net, self.activationFunctionAngularFactor)
- 
+
+# The ANN class 
 class artifialNetwork:
 
     inputLayerNeurons = []
@@ -290,7 +314,7 @@ class artifialNetwork:
             ))
 
     # Forward propagate information from input to a network output.
-    def forward_propagate(self, data):
+    def forwardPropagate(self, data):
         if(len(data) is not len(self.inputLayerNeurons)):
             raise ValueError('provisioned data must have the same dimension from ANN inputs')
         
@@ -306,3 +330,20 @@ class artifialNetwork:
                 new_inputs.append(neuron.activation(inputs))
             inputs = new_inputs
         return inputs
+
+    # Get all layers neurons weights
+    def getAnnWeights(self):
+        layers = [self.inputLayerNeurons, self.hiddenLayerNeurons, self.outputLayerNeurons]
+        i = 0
+        for layer in layers:
+            i += 1
+            print(i,'# Layer', sep='')
+            j = 0
+            for neuron in layer:
+                j += 1
+                print(neuron.weights, ' <- neuron ', j, '#', sep='')
+            print('--------')
+
+# The train method
+def trainAnnBackpropagate(ann, data):
+    pass
