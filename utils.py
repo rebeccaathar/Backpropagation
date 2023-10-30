@@ -68,6 +68,10 @@ class neuron:
     activationFunctionAngularFactor = 1
     def activationFunction(): pass
     
+    # Runtime vars that helps during training:
+    lastNetMeasured = 0
+    lastOutputMeasured = 0
+
     # Neuron contructor, it receives, 4 arguments, thus, they are described below.
     # weights: indicates the neuron link weights. E.g: [w1, w2, w3, ..., wN]
     # bias: bias of the neuron
@@ -85,13 +89,16 @@ class neuron:
         net = self.bias #bias 
         for i in range(len(self.weights)):
             net += self.weights[i] * inputs[i]
+        self.lastNetMeasured = net
         return net
     
     # Activation is a function that calculates the output of the neuron 
     # based on its net and activation function.
     def activation(self, inputs):
         net = self.net(inputs)
-        return self.activationFunction(net, self.activationFunctionAngularFactor)
+        output = self.activationFunction(net, self.activationFunctionAngularFactor)
+        self.lastOutputMeasured = output
+        return output
 
     # Get neuron function activation derived
     def getNeuronActivationFunctionsDerived(self, x):
