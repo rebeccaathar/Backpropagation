@@ -33,6 +33,7 @@ class annDataset():
         min_val = np.min(features, axis=0)
         max_val = np.max(features, axis=0)
         normalized_features = (features - min_val) / (max_val - min_val)
+        normalized_features['out'] = data.iloc[:,-1]
         return normalized_features
 
     # Split dataset in test and validation and use randon sort to change test and validation detaset every time is called
@@ -71,6 +72,7 @@ class neuron:
     # Runtime vars that helps during training:
     lastNetMeasured = 0
     lastOutputMeasured = 0
+    lastActivationFunctionsDerived = 0
 
     # Neuron contructor, it receives, 4 arguments, thus, they are described below.
     # weights: indicates the neuron link weights. E.g: [w1, w2, w3, ..., wN]
@@ -97,13 +99,14 @@ class neuron:
     def activation(self, inputs):
         net = self.net(inputs)
         output = self.activationFunction(net, self.activationFunctionAngularFactor)
+        self.lastActivationFunctionsDerived = self.getNeuronActivationFunctionsDerived(net)
         self.lastOutputMeasured = output
         return output
 
     # Get neuron function activation derived
     def getNeuronActivationFunctionsDerived(self, x):
         p = self.activationFunctionAngularFactor
-        match self.activationfunction:
+        match self.activationFunction:
             case neuronActivationFunctions.linear:
                 return p
             case neuronActivationFunctions.sigmoide:
@@ -220,7 +223,7 @@ class artifialNetwork:
         # Overwrite default weights
         if ('weights' not in incompleteDictSettings):
             for i in range(defaultSettings['numberOfHiddenNeurons']):
-                defaultSettings['weights'].append(np.ones(len(self.inputLayerNeurons)))
+                defaultSettings['weights'].append(np.random.rand(len(self.inputLayerNeurons)))
         else:
             if(len(incompleteDictSettings['weights'][0]) is not len(self.inputLayerNeurons)): 
                 raise ValueError('hidden layer weights column dimension does not match input layer')
@@ -366,23 +369,49 @@ class artifialNetwork:
 
 # The train method
 def trainAnnBackpropagate(artifialNetwork, annDataset, learningFactor, numberOfOutputs=1):
-    for uniqueData in annDataset.testDataset:
-        uniqueDataOutputs = uniqueData[-1 * numberOfOutputs]
+    outputError = []
+    for uniqueData in annDataset.testDataset.iloc:
+        uniqueData = uniqueData.to_numpy()
+        uniqueDataOutputs = uniqueData[-1 * numberOfOutputs :]
         uniqueDataInputs = uniqueData[: -1 * numberOfOutputs]
 
         # Output Layer weights train
-        outputIndex = 0
-        for outputNeuron in artifialNetwork.outputLayerNeurons:
-            error = uniqueDataOutputs[outputIndex] - artifialNetwork.forwardPropagate(uniqueDataInputs)[outputIndex]
-            backLayerOutput = 0
-            for weight in outputNeuron.weights:
-                weightIncrement =   learningFactor * \
-                                    error * \
-                                    outputNeuron.getNeuronActivationFunctionsDerived(outputNeuron.lastNetMeasured) * \
-                                    artifialNetwork.hiddenLayerNeurons[backLayerOutput].lastOutputMeasured
-                weight += weightIncrement
-                outputNeuron.weights[backLayerOutput] = weight
-                backLayerOutput += 1
-            outputIndex += 1
+        output = artifialNetwork.forwardPropagate(uniqueDataInputs)
+        outputGradient = []
+        error = []
+
+        for i in range(len(output)):
+            currentError = uniqueDataOutputs[i] - output[i]
+            error.append(currentError)
+            gradient = (currentError)*artifialNetwork.outputLayerNeurons[i].lastActivationFunctionsDerived
+            outputGradient.append(gradient)
         
-        # Hidden layer weights train
+        # Store old output neurons due to hidden layer trianing
+        beforeUpdateOutputNeurons = artifialNetwork.outputLayerNeurons
+        for outputNeuron, gradient, i in zip(artifialNetwork.outputLayerNeurons, outputGradient, range(len(outputGradient))):
+            updatedWeight = []
+            for weight, hiddenNeuron in zip(outputNeuron.weights, artifialNetwork.hiddenLayerNeurons):
+                dW = gradient*learningFactor*hiddenNeuron.lastOutputMeasured
+                weight += dW
+                updatedWeight.append(weight)
+            artifialNetwork.outputLayerNeurons[i].weights = updatedWeight
+        
+        # Total output error
+        outputError.append(error)
+
+        # Hidden layer weights training
+        localGradient = []
+
+        for i in range(len(artifialNetwork.hiddenLayerNeurons)):
+            outputBackpropagatedError = 0
+            for outputNeuron, outputRespectiveGradient in zip(beforeUpdateOutputNeurons, outputGradient):
+                outputBackpropagatedError += outputNeuron.weights[i]*outputRespectiveGradient
+            gradient = outputBackpropagatedError*artifialNetwork.hiddenLayerNeurons[i].lastActivationFunctionsDerived
+            localGradient.append(gradient)
+        for hiddenNeuron, gradient, i in zip(artifialNetwork.hiddenLayerNeurons, localGradient, range(len(localGradient))):
+            updatedWeight = []
+            for weight, inputNeuron in zip(hiddenNeuron.weights, artifialNetwork.inputLayerNeurons):
+                dW = gradient*learningFactor*inputNeuron.lastOutputMeasured
+                weight += dW
+                updatedWeight.append(weight)
+            artifialNetwork.hiddenLayerNeurons[i].weights = updatedWeight
