@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from enum import Enum
 import random
+import matplotlib.pyplot as plt
 
 # Calculate the accuracy of our model
 def accuracy_metric(actual, predicted):
@@ -369,7 +370,8 @@ class artifialNetwork:
 
 # The train method
 def trainAnnBackpropagate(artifialNetwork, annDataset, learningFactor, numberOfOutputs=1):
-    outputError = []
+    trainingOutputNMSEError = []
+    validataionOutputNMSEError = []
     for uniqueData in annDataset.testDataset.iloc:
         uniqueData = uniqueData.to_numpy()
         uniqueDataOutputs = uniqueData[-1 * numberOfOutputs :]
@@ -397,7 +399,7 @@ def trainAnnBackpropagate(artifialNetwork, annDataset, learningFactor, numberOfO
             artifialNetwork.outputLayerNeurons[i].weights = updatedWeight
         
         # Total output error
-        outputError.append(error)
+        trainingOutputNMSEError.append(nmse(error))
 
         # Hidden layer weights training
         localGradient = []
@@ -415,3 +417,57 @@ def trainAnnBackpropagate(artifialNetwork, annDataset, learningFactor, numberOfO
                 weight += dW
                 updatedWeight.append(weight)
             artifialNetwork.hiddenLayerNeurons[i].weights = updatedWeight
+        
+        # Validation Database stop method
+        error = []
+        for validationData in annDataset.validationdataset.iloc:
+            currentError = []
+            validationData = validationData.to_numpy()
+            validationInputs = validationData[ :-1 * numberOfOutputs]
+            validationOutputs = validationData[ -1 * numberOfOutputs: ]
+            annValidationOutput = artifialNetwork.forwardPropagate(validationInputs)
+            for expectedOutput, measuredOutput in zip(validationOutputs, annValidationOutput):
+                currentError.append(expectedOutput - measuredOutput)
+            error.append(nmse(currentError))
+        validataionOutputNMSEError.append(nmse(error))
+        try:
+            if(validataionOutputNMSEError[-1] - validataionOutputNMSEError[-2] > 0):
+                break
+        except:
+            pass
+
+    printTrainingResults(trainingOutputNMSEError, validataionOutputNMSEError)
+
+def nmse(error):
+    nmse = 0
+    for uniqueError in error:
+        nmse += uniqueError*uniqueError
+    nmse = nmse / len(error)
+    return nmse
+
+def printTrainingResults(trainingOutputNMSEError, validataionOutputNMSEError):
+    plt.clf()
+    plt.xlabel('Número de épocas')
+    plt.ylabel('NMSE')
+    plt.title('Gráfico do NMSE')
+    plt.plot(trainingOutputNMSEError)
+    plt.plot(validataionOutputNMSEError)
+    plt.legend(["Training", "Validation"])
+    plt.savefig("nmseAnn.png")
+
+def simulateAnn(ann, dataset, numberOfOutputs=1, generatedImageMaxLenght=20):
+    dataFull = pd.concat([dataset.validationdataset, dataset.testDataset])
+    dataOutputs = []
+    annOutput = []
+    for data in dataFull.iloc:
+            data = data.to_numpy()
+            dataInputs = data[ :-1 * numberOfOutputs]
+            dataOutputs.append(data[ -1 * numberOfOutputs: ])
+            annOutput.append(ann.forwardPropagate(dataInputs))
+    plt.clf()
+    plt.ylabel('Output')
+    plt.title('Gráfico da saida da ANN Parcial')
+    plt.scatter(range(len(dataOutputs))[0:generatedImageMaxLenght], dataOutputs[0:generatedImageMaxLenght])
+    plt.scatter(range(len(annOutput))[0:generatedImageMaxLenght], annOutput[0:generatedImageMaxLenght])
+    plt.legend(["Esperado", "saída da ANN"])
+    plt.savefig("simuAnn.png")
