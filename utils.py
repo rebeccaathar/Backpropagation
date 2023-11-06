@@ -372,52 +372,59 @@ class artifialNetwork:
 def trainAnnBackpropagate(artifialNetwork, annDataset, learningFactor, numberOfOutputs=1):
     trainingOutputNMSEError = []
     validataionOutputNMSEError = []
-    for uniqueData in annDataset.testDataset.iloc:
-        uniqueData = uniqueData.to_numpy()
-        uniqueDataOutputs = uniqueData[-1 * numberOfOutputs :]
-        uniqueDataInputs = uniqueData[: -1 * numberOfOutputs]
+    criticalLoopCount = 0
+    while(criticalLoopCount<=1000):
+        criticalLoopCount+=1
+        testNMSEerror = []
+        # Run test dataset and update weights
+        for uniqueData in annDataset.testDataset.iloc:
+            uniqueData = uniqueData.to_numpy()
+            uniqueDataOutputs = uniqueData[-1 * numberOfOutputs :]
+            uniqueDataInputs = uniqueData[: -1 * numberOfOutputs]
 
-        # Output Layer weights train
-        output = artifialNetwork.forwardPropagate(uniqueDataInputs)
-        outputGradient = []
-        error = []
+            # Output Layer weights train
+            output = artifialNetwork.forwardPropagate(uniqueDataInputs)
+            outputGradient = []
+            error = []
 
-        for i in range(len(output)):
-            currentError = uniqueDataOutputs[i] - output[i]
-            error.append(currentError)
-            gradient = (currentError)*artifialNetwork.outputLayerNeurons[i].lastActivationFunctionsDerived
-            outputGradient.append(gradient)
+            for i in range(len(output)):
+                currentError = uniqueDataOutputs[i] - output[i]
+                error.append(currentError)
+                gradient = (currentError)*artifialNetwork.outputLayerNeurons[i].lastActivationFunctionsDerived
+                outputGradient.append(gradient)
+            
+            # Store old output neurons due to hidden layer trianing
+            beforeUpdateOutputNeurons = artifialNetwork.outputLayerNeurons
+            for outputNeuron, gradient, i in zip(artifialNetwork.outputLayerNeurons, outputGradient, range(len(outputGradient))):
+                updatedWeight = []
+                for weight, hiddenNeuron in zip(outputNeuron.weights, artifialNetwork.hiddenLayerNeurons):
+                    dW = gradient*learningFactor*hiddenNeuron.lastOutputMeasured
+                    weight += dW
+                    updatedWeight.append(weight)
+                artifialNetwork.outputLayerNeurons[i].weights = updatedWeight
+            
+            # Total output error
+            testNMSEerror.append(nmse(error))
+
+            # Hidden layer weights training
+            localGradient = []
+
+            for i in range(len(artifialNetwork.hiddenLayerNeurons)):
+                outputBackpropagatedError = 0
+                for outputNeuron, outputRespectiveGradient in zip(beforeUpdateOutputNeurons, outputGradient):
+                    outputBackpropagatedError += outputNeuron.weights[i]*outputRespectiveGradient
+                gradient = outputBackpropagatedError*artifialNetwork.hiddenLayerNeurons[i].lastActivationFunctionsDerived
+                localGradient.append(gradient)
+            for hiddenNeuron, gradient, i in zip(artifialNetwork.hiddenLayerNeurons, localGradient, range(len(localGradient))):
+                updatedWeight = []
+                for weight, inputNeuron in zip(hiddenNeuron.weights, artifialNetwork.inputLayerNeurons):
+                    dW = gradient*learningFactor*inputNeuron.lastOutputMeasured
+                    weight += dW
+                    updatedWeight.append(weight)
+                artifialNetwork.hiddenLayerNeurons[i].weights = updatedWeight
         
-        # Store old output neurons due to hidden layer trianing
-        beforeUpdateOutputNeurons = artifialNetwork.outputLayerNeurons
-        for outputNeuron, gradient, i in zip(artifialNetwork.outputLayerNeurons, outputGradient, range(len(outputGradient))):
-            updatedWeight = []
-            for weight, hiddenNeuron in zip(outputNeuron.weights, artifialNetwork.hiddenLayerNeurons):
-                dW = gradient*learningFactor*hiddenNeuron.lastOutputMeasured
-                weight += dW
-                updatedWeight.append(weight)
-            artifialNetwork.outputLayerNeurons[i].weights = updatedWeight
-        
-        # Total output error
-        trainingOutputNMSEError.append(nmse(error))
+        trainingOutputNMSEError.append(np.average(testNMSEerror))
 
-        # Hidden layer weights training
-        localGradient = []
-
-        for i in range(len(artifialNetwork.hiddenLayerNeurons)):
-            outputBackpropagatedError = 0
-            for outputNeuron, outputRespectiveGradient in zip(beforeUpdateOutputNeurons, outputGradient):
-                outputBackpropagatedError += outputNeuron.weights[i]*outputRespectiveGradient
-            gradient = outputBackpropagatedError*artifialNetwork.hiddenLayerNeurons[i].lastActivationFunctionsDerived
-            localGradient.append(gradient)
-        for hiddenNeuron, gradient, i in zip(artifialNetwork.hiddenLayerNeurons, localGradient, range(len(localGradient))):
-            updatedWeight = []
-            for weight, inputNeuron in zip(hiddenNeuron.weights, artifialNetwork.inputLayerNeurons):
-                dW = gradient*learningFactor*inputNeuron.lastOutputMeasured
-                weight += dW
-                updatedWeight.append(weight)
-            artifialNetwork.hiddenLayerNeurons[i].weights = updatedWeight
-        
         # Validation Database stop method
         error = []
         for validationData in annDataset.validationdataset.iloc:
@@ -435,7 +442,6 @@ def trainAnnBackpropagate(artifialNetwork, annDataset, learningFactor, numberOfO
                 break
         except:
             pass
-
     printTrainingResults(trainingOutputNMSEError, validataionOutputNMSEError)
 
 def nmse(error):
@@ -450,7 +456,7 @@ def printTrainingResults(trainingOutputNMSEError, validataionOutputNMSEError):
     plt.xlabel('Número de épocas')
     plt.ylabel('NMSE')
     plt.title('Gráfico do NMSE')
-    plt.plot(trainingOutputNMSEError)
+    plt.plot(trainingOutputNMSEError[1:])
     plt.plot(validataionOutputNMSEError)
     plt.legend(["Training", "Validation"])
     plt.savefig("nmseAnn.png")

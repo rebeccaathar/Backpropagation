@@ -3,7 +3,7 @@ import utils
 
 dataset = utils.annDataset("dadosmamografia.csv")
 
-ann = utils.artifialNetwork(5, 40, 1)
+ann = utils.artifialNetwork(5, 50, 1)
 
 utils.trainAnnBackpropagate(ann, dataset, 0.001, 1)
 
