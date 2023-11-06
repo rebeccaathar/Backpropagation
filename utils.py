@@ -429,7 +429,7 @@ def trainAnnBackpropagate(artifialNetwork, annDataset, learningFactor, numberOfO
             for expectedOutput, measuredOutput in zip(validationOutputs, annValidationOutput):
                 currentError.append(expectedOutput - measuredOutput)
             error.append(nmse(currentError))
-        validataionOutputNMSEError.append(nmse(error))
+        validataionOutputNMSEError.append(np.average(error))
         try:
             if(validataionOutputNMSEError[-1] - validataionOutputNMSEError[-2] > 0):
                 break
