@@ -462,7 +462,7 @@ def trainAnnBackpropagate(epoch, stop, artifialNetwork, annDataset, learningFact
             pass
 
         if epochs_without_improvement == stop:
-            print(f"The model has no improvement for the last {stop} epochs")
+            print(f"The model has no improvement for the last {stop} epochs. ")
             break
     
 
