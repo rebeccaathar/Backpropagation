@@ -5,8 +5,8 @@ dataset = utils.annDataset("dadosmamografia.csv")
 
 ann = utils.artifialNetwork(5, 50, 1)
 
-utils.trainAnnBackpropagate(ann, dataset, 0.001, 1)
+utils.trainAnnBackpropagate(50, 8, ann, dataset, 0.001, 1)
 
-ann.getAnnWeights()
+# ann.getAnnWeights()
 
 utils.simulateAnn(ann, dataset, generatedImageMaxLenght=15)

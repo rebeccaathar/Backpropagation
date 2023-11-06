@@ -6,12 +6,11 @@ import random
 import matplotlib.pyplot as plt
 
 # Calculate the accuracy of our model
-def accuracy_metric(actual, predicted):
- correct = 0
- for i in range(len(actual)):
-    if actual[i] == predicted[i]:
-        correct += 1
- return correct / float(len(actual)) 
+def accuracy_metric(epoch, actual_train, predicted_train, actual_val, predicted_val ):
+    accuracy_train = (predicted_train/(actual_train+predicted_train))*100
+    accuracy_val = (predicted_val/(actual_val+predicted_val))*100
+    accuracy = f'Epoch {epoch}: Accuracy train = {accuracy_train:.2f}%        Accuracy val = {accuracy_val:.2f}% '
+    print(accuracy)
 
 # ANN Dataset class
 class annDataset():
@@ -369,13 +368,18 @@ class artifialNetwork:
             print('--------')
 
 # The train method
-def trainAnnBackpropagate(artifialNetwork, annDataset, learningFactor, numberOfOutputs=1):
+def trainAnnBackpropagate(epoch, stop, artifialNetwork, annDataset, learningFactor, numberOfOutputs=1):
     trainingOutputNMSEError = []
     validataionOutputNMSEError = []
     criticalLoopCount = 0
-    while(criticalLoopCount<=1000):
+    epochs_without_improvement = 0
+
+    while(criticalLoopCount<=epoch):
         criticalLoopCount+=1
         testNMSEerror = []
+        correct_train = 0
+        error_train = 0
+
         # Run test dataset and update weights
         for uniqueData in annDataset.testDataset.iloc:
             uniqueData = uniqueData.to_numpy()
@@ -389,10 +393,13 @@ def trainAnnBackpropagate(artifialNetwork, annDataset, learningFactor, numberOfO
 
             for i in range(len(output)):
                 currentError = uniqueDataOutputs[i] - output[i]
+                if uniqueDataOutputs[i] == np.round(output[i]):
+                    correct_train += 1
+                else:
+                    error_train +=1 
                 error.append(currentError)
                 gradient = (currentError)*artifialNetwork.outputLayerNeurons[i].lastActivationFunctionsDerived
                 outputGradient.append(gradient)
-            
             # Store old output neurons due to hidden layer trianing
             beforeUpdateOutputNeurons = artifialNetwork.outputLayerNeurons
             for outputNeuron, gradient, i in zip(artifialNetwork.outputLayerNeurons, outputGradient, range(len(outputGradient))):
@@ -405,7 +412,6 @@ def trainAnnBackpropagate(artifialNetwork, annDataset, learningFactor, numberOfO
             
             # Total output error
             testNMSEerror.append(nmse(error))
-
             # Hidden layer weights training
             localGradient = []
 
@@ -427,6 +433,8 @@ def trainAnnBackpropagate(artifialNetwork, annDataset, learningFactor, numberOfO
 
         # Validation Database stop method
         error = []
+        correct_val = 0
+        error_val = 0
         for validationData in annDataset.validationdataset.iloc:
             currentError = []
             validationData = validationData.to_numpy()
@@ -435,13 +443,29 @@ def trainAnnBackpropagate(artifialNetwork, annDataset, learningFactor, numberOfO
             annValidationOutput = artifialNetwork.forwardPropagate(validationInputs)
             for expectedOutput, measuredOutput in zip(validationOutputs, annValidationOutput):
                 currentError.append(expectedOutput - measuredOutput)
+                if expectedOutput == np.round(measuredOutput):
+                    correct_val +=1
+                else:
+                    error_val +=1
             error.append(nmse(currentError))
         validataionOutputNMSEError.append(np.average(error))
+        
+        accuracy_metric (criticalLoopCount, error_train, correct_train, error_val, correct_val)
+        
+        # Early stopping
         try:
-            if(validataionOutputNMSEError[-1] - validataionOutputNMSEError[-2] > 0):
-                break
+            if(validataionOutputNMSEError[-1] >= validataionOutputNMSEError[-2] ):
+                epochs_without_improvement += 1
+            else:
+                epochs_without_improvement = 0
         except:
             pass
+
+        if epochs_without_improvement == stop:
+            print(f"The model has no improvement for the last {stop} epochs")
+            break
+    
+
     printTrainingResults(trainingOutputNMSEError, validataionOutputNMSEError)
 
 def nmse(error):
