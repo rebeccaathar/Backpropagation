@@ -111,9 +111,9 @@ class neuron:
             case neuronActivationFunctions.linear:
                 return p
             case neuronActivationFunctions.sigmoide:
-                return p*neuronActivationFunctions.sigmoide(x)*(1-neuronActivationFunctions.sigmoide(x))
+                return p*neuronActivationFunctions.sigmoide(x, p)*(1-neuronActivationFunctions.sigmoide(x, p))
             case neuronActivationFunctions.hiperbolica:
-                return p*(1-(neuronActivationFunctions.hiperbolica(x)^2))
+                return p*(1-(neuronActivationFunctions.hiperbolica(x, p)^2))
             case neuronActivationFunctions.arctan:
                 return (p*(1/(1+x^2)))
 
@@ -181,7 +181,7 @@ class artifialNetwork:
     #       }
     def __init__(self, numberOfInputNeurons, hiddenNeurons, outputNeurons):
         # Input layer config
-        if(numberOfInputNeurons <= 0 or type(numberOfInputNeurons) is not int): raise ValueError('Number of inputs neurons invalid. Parameter must be an integer greater or equals 0')
+        if(numberOfInputNeurons <= 0 or type(numberOfInputNeurons) is not int): raise ValueError('Number of inputs neurons invalid. Parameter must be an integer greater or equals 1')
         for i in range(numberOfInputNeurons):
             self.inputLayerNeurons.append(neuron([1], 0, neuronActivationFunctions.linear, 1))
         
@@ -189,7 +189,7 @@ class artifialNetwork:
         if((type(hiddenNeurons) is not int) and (type(hiddenNeurons) is not dict)):
             raise ValueError('Hidden neurons Parameter must be an integer or dictionary')
         if (type(hiddenNeurons) is int):
-            if(hiddenNeurons <= 0): raise ValueError('Number of hidden neurons invalid. Parameter must be greater or equals 0')
+            if(hiddenNeurons <= 0): raise ValueError('Number of hidden neurons invalid. Parameter must be greater or equals 1')
             hiddenNeurons = {"numberOfHiddenNeurons":hiddenNeurons}
         hiddenNeuronsCompleteSettings = self.__completeHiddenNeuronsSettings__(hiddenNeurons)
         self.__createHiddenLayerFromSetings__(hiddenNeuronsCompleteSettings)
@@ -198,7 +198,7 @@ class artifialNetwork:
         if((type(outputNeurons) is not int) and (type(outputNeurons) is not dict)):
             raise ValueError('Output neurons Parameter must be an integer or dictionary')
         if (type(outputNeurons) is int):
-            if(outputNeurons <= 0): raise ValueError('Number of output neurons invalid. Parameter must be greater or equals 0')
+            if(outputNeurons <= 0): raise ValueError('Number of output neurons invalid. Parameter must be greater or equals 1')
             outputNeurons = {"numberOfOutputNeurons":outputNeurons}
         outputNeuronsCompleteSettings = self.__completeOutputNeuronsSettings__(outputNeurons)
         self.__createOutputLayerFromSetings__(outputNeuronsCompleteSettings)
@@ -218,7 +218,7 @@ class artifialNetwork:
         if ('numberOfHiddenNeurons' not in incompleteDictSettings):
             raise ValueError('Missing required option numberOfHiddenNeurons')
         else:
-            if(incompleteDictSettings['numberOfHiddenNeurons'] <= 0): raise ValueError('Number of hidden neurons invalid. Parameter must be greater or equals 0')
+            if(incompleteDictSettings['numberOfHiddenNeurons'] <= 0): raise ValueError('Number of hidden neurons invalid. Parameter must be greater or equals 1')
             defaultSettings['numberOfHiddenNeurons'] = incompleteDictSettings['numberOfHiddenNeurons']
 
         # Overwrite default weights

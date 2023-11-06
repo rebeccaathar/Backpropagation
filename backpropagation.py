@@ -3,9 +3,9 @@ import utils
 
 dataset = utils.annDataset("dadosmamografia.csv")
 
-ann = utils.artifialNetwork(5, 100, 1)
+ann = utils.artifialNetwork(5, 40, 1)
 
-utils.trainAnnBackpropagate(ann, dataset, 0.0001, 1)
+utils.trainAnnBackpropagate(ann, dataset, 0.001, 1)
 
 ann.getAnnWeights()
 
