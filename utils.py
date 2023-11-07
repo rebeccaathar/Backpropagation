@@ -452,7 +452,7 @@ def trainAnnBackpropagate(epoch, stop, artifialNetwork, annDataset, learningFact
         
         accuracy_metric (criticalLoopCount, error_train, correct_train, error_val, correct_val)
         
-        #  Stop criteria
+        #  Stop Criteria
         try:
             if(validataionOutputNMSEError[-1] >= validataionOutputNMSEError[-2] ):
                 epochs_without_improvement += 1
